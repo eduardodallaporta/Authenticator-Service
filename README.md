@@ -139,3 +139,12 @@ python -m pytest -q
 
 ------------------------------------------------------------------------
 
+# Autor
+**Eduardo Dalla Porta**
+
+------------------------------------------------------------------------
+
+#  Contato
+
+- LinkedIn: [/in/eduardo-dalla-porta](https://www.linkedin.com/feed/)
+- GitHub: [eduardodallaporta](https://github.com/eduardodallaporta)
