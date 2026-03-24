@@ -1,21 +1,30 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.routes.auth import router as auth_router
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.engine import create_db_and_tables
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
+
 app = FastAPI(
     title="Auth Service",
     version="1.0.0",
     description="Serviço de autenticação com JWT + Refresh Rotation + Reuse Detection + Rate Limiting.",
+    lifespan=lifespan,
 )
 
 # Middleware de segurança
@@ -24,11 +33,6 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Rate limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
 
 
 # -----------------------------
