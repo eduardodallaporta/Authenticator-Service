@@ -1,5 +1,13 @@
 from __future__ import annotations
 
+import os
+
+os.environ.setdefault("JWT_SECRET_KEY", "test_secret_key")
+os.environ.setdefault("JWT_ALGORITHM", "HS256")
+os.environ.setdefault("ACCESS_TOKEN_EXPIRE_MINUTES", "15")
+os.environ.setdefault("REFRESH_TOKEN_EXPIRE_DAYS", "7")
+os.environ.setdefault("DATABASE_URL", "postgresql+psycopg://auth:auth@localhost:5432/auth_db")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -13,18 +21,12 @@ from app.core.rate_limit import limiter
 
 @pytest.fixture(scope="session", autouse=True)
 def create_test_schema():
-    """
-    Garante que as tabelas existem no Postgres antes de rodar a suíte.
-    """
     SQLModel.metadata.create_all(engine)
     yield
 
 
 @pytest.fixture()
 def db_session():
-    """
-    Abre uma sessão por teste e limpa as tabelas no final.
-    """
     session = Session(engine)
     try:
         yield session
@@ -37,22 +39,15 @@ def db_session():
 
 @pytest.fixture()
 def client(db_session: Session):
-    """
-    Override do Depends(get_session) para usar a mesma sessão do teste
-    e desabilita o rate limit durante os testes.
-    """
     def override_get_session():
         yield db_session
 
     app.dependency_overrides[get_session] = override_get_session
-
-    # desabilita rate limit nos testes
     limiter.enabled = False
 
     with TestClient(app) as c:
         yield c
 
-    # reabilita depois dos testes
     limiter.enabled = True
     app.dependency_overrides.clear()
 
@@ -90,4 +85,4 @@ def tokens(client: TestClient, user_payload, registered_user):
 
 @pytest.fixture()
 def auth_headers(tokens):
-    return {"Authorization": f"Bearer {tokens['access_token']}"}
+    return {"Authorization": f"Bearer {tokens['access_token']}"} 
